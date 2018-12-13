@@ -116,7 +116,8 @@ def relu_backward(dA, cache):
 
 def initialize_parameters(layer_dims):
     """
-    Initializes the parameters of the neural network to random values.
+    Initializes the parameters of the neural network to random values using the
+    `Xavier initialization` (see: X. Glorot and Y. Bengio, 2010).
         
     Arguments:
     layer_dims -- python array (list) containing the dimensions of each layer in our network.
@@ -132,12 +133,13 @@ def initialize_parameters(layer_dims):
     L = len(layer_dims)            # Number of layers in the network.
     
     for l in range(1, L):
-        parameters['W' + str(l)] = np.random.randn(layer_dims[l], layer_dims[l-1]) * 0.01
+        # The weigths are scaled by a factor sqrt(1/layer_dims[l-1]), i.e. by the
+        # sqrt of the previous layer size.
+        parameters['W' + str(l)] = np.random.randn(layer_dims[l], layer_dims[l-1]) / np.sqrt(layer_dims[l-1])
         parameters['b' + str(l)] = np.zeros((layer_dims[l], 1))
         
         assert(parameters['W' + str(l)].shape == (layer_dims[l], layer_dims[l-1]))
         assert(parameters['b' + str(l)].shape == (layer_dims[l], 1))
-    
     
     return parameters
 
