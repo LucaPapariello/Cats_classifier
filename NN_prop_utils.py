@@ -9,17 +9,17 @@ import h5py
 def load_data():
     # Load the training set.
     train_dataset = h5py.File('datasets/train_catvnoncat.h5', "r")
-    train_set_x_orig = np.array(train_dataset["train_set_x"][:])   # your train set features
-    train_set_y_orig = np.array(train_dataset["train_set_y"][:])   # your train set labels
+    train_set_x_orig = np.array(train_dataset["train_set_x"][:])   # Train set features.
+    train_set_y_orig = np.array(train_dataset["train_set_y"][:])   # Train set labels.
     
     # Load the test set.
     test_dataset = h5py.File('datasets/test_catvnoncat.h5', "r")
-    test_set_x_orig = np.array(test_dataset["test_set_x"][:])      # your test set features
-    test_set_y_orig = np.array(test_dataset["test_set_y"][:])      # your test set labels
+    test_set_x_orig = np.array(test_dataset["test_set_x"][:])      # Test set features.
+    test_set_y_orig = np.array(test_dataset["test_set_y"][:])      # Test set labels.
     
-    classes = np.array(test_dataset["list_classes"][:])            # the list of classes
+    classes = np.array(test_dataset["list_classes"][:])            # The list of classes.
     
-    # Reshape the training and test sets
+    # Reshape the training and test sets.
     train_set_y_orig = train_set_y_orig.reshape((1, train_set_y_orig.shape[0]))
     test_set_y_orig = test_set_y_orig.reshape((1, test_set_y_orig.shape[0]))
     
@@ -221,7 +221,7 @@ def L_model_forward(X, parameters):
     caches = []
     A = X                               # The first value for A comes from the input layer, i.e. X.
     L = len(parameters) // 2            # Number of layers in the neural network.
-                                        # // is for integer division
+                                        # // is for integer division.
     
     # Implement [LINEAR -> RELU]*(L-1) for all the layers except the last one.
     # Add "cache" to the "caches" list.
@@ -259,10 +259,10 @@ def compute_cost(AL, Y):
     Y -- true "label" vector (1 if cat, 0 if non-cat), of shape (1, number of examples).
         
     Returns:
-    cost -- cross-entropy cost
+    cost -- cross-entropy cost.
     """
     
-    m = Y.shape[1]      # Number of examples
+    m = Y.shape[1]      # Number of examples.
     
     # Compute loss from AL and Y.
     cost = -np.dot(Y, np.log(AL).T) - np.dot(1-Y, np.log(1-AL).T)
@@ -270,6 +270,42 @@ def compute_cost(AL, Y):
     
     cost = np.squeeze(cost)
     assert(cost.shape == ())
+    
+    return cost
+
+
+
+def compute_cost_with_regularization(AL, Y, parameters, lambd):
+    """
+    Implement the cross-entropy cost function with L2 regularization.
+        
+    Arguments:
+    AL -- post-activation, output of forward propagation, of shape (1, number of examples).
+    Y -- "true" labels vector, of shape (1, number of examples).
+    parameters -- python dictionary containing parameters of the model.
+    lambd -- regularization hyperparameter, scalar.
+        
+    Returns:
+    cost - value of the regularized loss function.
+    """
+    
+    m = Y.shape[1]
+    L = len(parameters) // 2
+    
+    cross_entropy_cost = compute_cost(AL, Y)      # This gives the cross-entropy part of the cost.
+    
+    L2_regularization_cost = 0                    # Initialize the regularization cost.
+    
+    for l in range(1, L):
+        W_tmp = parameters['W' + str(l)]          # Retrieve the parameters.
+        # Implement the L2 regularization, i.e. add the Frobenius norm
+        # of the weigth matrices.
+        L2_regularization_cost += np.sum(np.square(W_tmp))
+
+    L2_regularization_cost *= lambd/(2*m)
+
+    # Total cost function.
+    cost = cross_entropy_cost + L2_regularization_cost
     
     return cost
 
@@ -282,14 +318,14 @@ def linear_backward(dZ, cache):
     Implements the linear portion of backward propagation for a single layer (layer l).
         
     Arguments:
-    dZ -- Gradient of the cost with respect to the linear output (of current layer l)
-    cache -- tuple of values (A_prev, W, b) coming from the forward propagation in the current layer
+    dZ -- Gradient of the cost with respect to the linear output (of current layer l).
+    cache -- tuple of values (A_prev, W, b) coming from the forward propagation in the current layer.
         
     Returns:
     dA_prev -- Gradient of the cost with respect to the activation (of the previous layer l-1), same shape
-               as A_prev
-    dW -- Gradient of the cost with respect to W (current layer l), same shape as W
-    db -- Gradient of the cost with respect to b (current layer l), same shape as b
+               as A_prev.
+    dW -- Gradient of the cost with respect to W (current layer l), same shape as W.
+    db -- Gradient of the cost with respect to b (current layer l), same shape as b.
     """
     A_prev, W, b = cache
     m = A_prev.shape[1]
@@ -338,9 +374,10 @@ def linear_activation_backward(dA, cache, activation):
 
 
 
-def L_model_backward(AL, Y, caches):
+def L_model_backward_with_regularization(AL, Y, caches, lambd):
     """
-    Implements the backward propagation for the [LINEAR->RELU]*(L-1) -> LINEAR->SIGMOID computation.
+    Implements the backward propagation for the [LINEAR->RELU]*(L-1) -> LINEAR->SIGMOID computation
+    with regularization.
         
     Arguments:
     AL -- probability vector, output of the forward propagation (L_model_forward()).
@@ -355,30 +392,41 @@ def L_model_backward(AL, Y, caches):
     grads["dW" + str(l)] = ...
     grads["db" + str(l)] = ...
     """
+    
     grads = {}
-    L = len(caches)    # The number of layers
-    m = AL.shape[1]
+    L = len(caches)           # The number of layers.
+    m = AL.shape[1]           # The number of examples.
     Y = Y.reshape(AL.shape)   # After this line, Y has the same shape as AL
     
-    # Initializing the backpropagation
-    dAL = - (np.divide(Y, AL) - np.divide(1 - Y, 1 - AL))  # Derivative of the cost with respect to AL
+    # Initializing the backpropagation.
+    dAL = - (np.divide(Y, AL) - np.divide(1 - Y, 1 - AL))   # Derivative of the cost with respect to AL.
     
     # Lth layer (SIGMOID -> LINEAR) gradients.
     # Inputs: "AL, Y, caches". Outputs: "grads["dAL"], grads["dWL"], grads["dbL"].
     current_cache = caches[L-1]
-    grads["dA" + str(L-1)], grads["dW" + str(L)], grads["db" + str(L)] =\
-            linear_activation_backward(dAL, current_cache, activation = "sigmoid")
     
+    grads["dA" + str(L-1)], grads["dW" + str(L)], grads["db" + str(L)] =\
+        linear_activation_backward(dAL, current_cache, activation = "sigmoid")
+    
+    # Add the additional regularization term's gradient to dW.
+    linear_cache, _ = current_cache
+    _, WL, _ = linear_cache
+    grads["dW" + str(L)] += (lambd/m) * WL
+
     for l in reversed(range(L-1)):
         # lth layer: (RELU -> LINEAR) gradients.
         current_cache = caches[l]
         dA_prev_temp, dW_temp, db_temp = linear_activation_backward(grads["dA" + str(l + 1)],
                                                                     current_cache,
                                                                     activation = "relu")
+        
+        # Add the additional regularization term's gradient to dW.
+        linear_cache, _ = current_cache
+        _, W_tmp, _ = linear_cache
         grads["dA" + str(l)] = dA_prev_temp
-        grads["dW" + str(l + 1)] = dW_temp
+        grads["dW" + str(l + 1)] = dW_temp + (lambd/m) * W_tmp
         grads["db" + str(l + 1)] = db_temp
-    
+
     return grads
 
 
@@ -399,7 +447,7 @@ def update_parameters(parameters, grads, learning_rate):
     parameters["b" + str(l)] = ...
     """
     
-    L = len(parameters) // 2    # Number of layers in the neural network
+    L = len(parameters) // 2    # Number of layers in the neural network.
     
     # Update rule for each parameter.
     for l in range(L):
@@ -423,15 +471,15 @@ def predict(X, y, parameters):
     p -- predictions for the given dataset X.
     """
     
-    m = X.shape[1]                # Number of examples
-    n = len(parameters) // 2      # Number of layers in the neural network
-    p = np.zeros((1,m))           # Prediction vector
+    m = X.shape[1]                # Number of examples.
+    n = len(parameters) // 2      # Number of layers in the neural network.
+    p = np.zeros((1,m))           # Prediction vector.
     
-    # Forward propagation
+    # Forward propagation.
     probs, caches = L_model_forward(X, parameters)
     
     
-    # Convert the prediction probabilities "probs" to 0/1 predictions
+    # Convert the prediction probabilities "probs" to 0/1 predictions.
     for i in range(0, probs.shape[1]):
         # If probs is larger than 0.5, than we set the prediction to 1;
         # if it's smaller to 0.
